@@ -123,22 +123,22 @@ function processGitPatch(patch) {
       const match4 = hunkHeaderLine.match(fileLinesRegex);
       if (!match4) return;
 
-      var nA = parseInt(match4[1]);
-      var nB = parseInt(match4[2]);
+      // var nA = parseInt(match4[1]);
+      // var nB = parseInt(match4[2]);
       var mergedA = "";
       var mergedB = "";
 
       for (const line of hunkLines) {
-        nA++; nB++;
+        // nA++; nB++;
         if (line.startsWith('-- ')) return;
 
         if (line.startsWith('+')) {
-          nA--;
+          // nA--;
           const lineContent = line.substr(1);
           // fileData.lines.push({ added: true, lineNumber: nB, line: lineContent });
           mergedB += `${lineContent}\n`;
         } else if (line.startsWith('-')) {
-          nB--;
+          // nB--;
           const lineContent = line.substr(1);
           // fileData.lines.push({ added: false, lineNumber: nA, line: lineContent });
           mergedA += `${lineContent}\n`;
@@ -157,7 +157,7 @@ function processGitPatch(patch) {
         numKeptHunksInFile--;
       } else {
         keptHunksStorage.push(hunkHeaderLine);
-        keptHunksStorage = _.concat(keptHunksStorage, ...hunkLines);
+        keptHunksStorage = keptHunksStorage.concat(hunkLines);
       }
 
       numHunksProcessed++;
