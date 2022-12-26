@@ -4,15 +4,13 @@ const fs = require('fs');
 const lexer = require("node-c-lexer");
 const _ = require('lodash');
 
-const hashRegex = /^From (\S*)/;
-const authorRegex = /^From:\s?([^<].*[^>])?\s+(<(.*)>)?/;
+// const hashRegex = /^From (\S*)/;
+// const authorRegex = /^From:\s?([^<].*[^>])?\s+(<(.*)>)?/;
 const fileNameRegex = /^diff --git "?a\/(.*)"?\s*"?b\/(.*)"?/;
 const fileLinesRegex = /^@@ -([0-9]*),?\S* \+([0-9]*),?/;
 const similarityIndexRegex = /^similarity index /;
-const addedFileModeRegex = /^new file mode /;
-const deletedFileModeRegex = /^deleted file mode /;
-const checkInsertStart = /^\s+$/i;
-const checkInsertEnd = /^\s+$/i;
+// const addedFileModeRegex = /^new file mode /;
+// const deletedFileModeRegex = /^deleted file mode /;
 
 function displayTimer(startTime, text) {
   const stopTime = process.hrtime(startTime);
@@ -30,7 +28,7 @@ function lexerArrayRemoveProps(lexerArray) {
   return lexerArray;
 }
 
-function parseGitPatch(patch) {
+function processGitPatch(patch) {
   if (typeof patch !== 'string') return null;
 
   var startTime = process.hrtime();
@@ -59,16 +57,16 @@ function parseGitPatch(patch) {
   const messageLine = lines.shift();
   if (!messageLine) return null;
 
-  const _b = messageLine.split('Subject: '), message = _b[1];*/
+  const _b = messageLine.split('Subject: '), message = _b[1];
 
   const parsedPatch = {
-    /*hash: hash,
+    hash: hash,
     authorName: authorName,
     authorEmail: authorEmail,
     date: date,
-    message: message,*/
+    message: message,
     files: []
-  };
+  };*/
 
   startTime = process.hrtime();
   const splitByFiles = splitIntoParts(lines, 'diff --git');
@@ -108,10 +106,10 @@ function parseGitPatch(patch) {
       lines: []
     };
 
-    parsedPatch.files.push(fileData);
+    // parsedPatch.files.push(fileData);
 
-    if (addedFileModeRegex.test(metaLine)) fileData.added = true;
-    if (deletedFileModeRegex.test(metaLine)) fileData.deleted = true;
+    // if (addedFileModeRegex.test(metaLine)) fileData.added = true;
+    // if (deletedFileModeRegex.test(metaLine)) fileData.deleted = true;
     if (similarityIndexRegex.test(metaLine)) return;
 
     const splitByHunk = splitIntoParts(fileLines, '@@ ');
@@ -137,16 +135,16 @@ function parseGitPatch(patch) {
         if (line.startsWith('+')) {
           nA--;
           const lineContent = line.substr(1);
-          fileData.lines.push({ added: true, lineNumber: nB, line: lineContent });
+          // fileData.lines.push({ added: true, lineNumber: nB, line: lineContent });
           mergedB += `${lineContent}\n`;
         } else if (line.startsWith('-')) {
           nB--;
           const lineContent = line.substr(1);
-          fileData.lines.push({ added: false, lineNumber: nA, line: lineContent });
+          // fileData.lines.push({ added: false, lineNumber: nA, line: lineContent });
           mergedA += `${lineContent}\n`;
-        } else {
+        }/* else {
           fileData.lines.push({ lineNumber: nA, line });
-        }
+        }*/
       }
 
       const mergedATokens = lexerArrayRemoveProps(lexer.lexUnit.tokenize(mergedA));
@@ -196,7 +194,7 @@ function parseGitPatch(patch) {
     console.log('');
   }
 
-  return parsedPatch;
+  // return parsedPatch;
 }
 
 function splitIntoParts(lines, separator) {
@@ -217,69 +215,6 @@ function splitIntoParts(lines, separator) {
   return parts;
 }
 
-function doProcessing(parsed) {
-  for (const file of parsed.files) {
-    const lineNumbersMap = file.lines.map(e => e.lineNumber);
-    const lineNumbersSet = new Set(lineNumbersMap);
-
-    for (const lineNumber of lineNumbersSet) {
-      const lines = file.lines.filter(e => e.lineNumber == lineNumber);
-      if (lines.length == 2) {
-        const [a, b] = [lines[0].line.split(''), lines[1].line.split('')];
-        let difference = patienceDiff(a, b);
-        var omit = true;
-        var checkStart = true;
-        var checkMiddle = false;
-
-        // scan for inside changes
-        for (const diffChar of difference.lines) {
-          if (checkMiddle && diffChar.aIndex != -1 && diffChar.bIndex != -1) {
-            omit = false;
-            break;
-          }
-          if (!checkStart && !checkMiddle && (diffChar.aIndex == -1 || diffChar.bIndex == -1)) {
-            checkMiddle = true;
-          }
-          if (checkStart && diffChar.aIndex != -1 && diffChar.bIndex != -1) {
-            checkStart = false;
-          }
-        }
-
-        // check for putside changes at the start
-        if (omit) {
-          for (const diffChar of difference.lines) {
-            if (diffChar.aIndex != -1 && diffChar.bIndex != -1) {
-              break;
-            }
-            if (!checkInsertStart.test(diffChar.line)) {
-              omit = false;
-              break;
-            }
-          }
-        }
-
-        // check for putside changes at the end
-        if (omit) {
-          const differenceLinesRev = difference.lines.reverse();
-           for (const diffChar of differenceLinesRev) {
-            if (diffChar.aIndex != -1 && diffChar.bIndex != -1) {
-              break;
-            }
-            if (!checkInsertEnd.test(diffChar.line)) {
-              omit = false;
-              break;
-            }
-          }
-        }
-
-        if (!omit) {
-          console.log(difference);
-        }
-      }
-    }
-  }
-}
-
 if (process.argv.length < 3) {
   console.log('Usage: node ' + process.argv[1] + ' FILENAME');
   process.exit(1);
@@ -287,8 +222,6 @@ if (process.argv.length < 3) {
 
 fs.readFile(process.argv[2], 'utf8', function(err, data) {
   if (!err) {
-    const parsed = parseGitPatch(data);
-    //doProcessing(parsed);
-    // console.log(parsed);
+    processGitPatch(data);
   }
 });
