@@ -28,7 +28,7 @@ function lexerArrayRemoveProps(lexerArray) {
   return lexerArray;
 }
 
-function processGitPatch(patch, outputfd) {
+function processGitPatch(patch, outputfd, omitfd) {
   if (typeof patch !== 'string') return null;
 
   var startTime = process.hrtime();
@@ -81,6 +81,7 @@ function processGitPatch(patch, outputfd) {
   var numLinesProcessed = 0;
   var lastPrintLength = 0;
   var outputHasContent = false;
+  var omitedOutputHasContent = false;
   var numTokensA = 0;
   var numTokensB = 0;
 
@@ -113,8 +114,8 @@ function processGitPatch(patch, outputfd) {
     if (similarityIndexRegex.test(metaLine)) return;
 
     const splitByHunk = splitIntoParts(fileLines, '@@ ');
-    var numKeptHunksInFile = splitByHunk.length;
     var keptHunksStorage = [];
+    var omitedHunksStorage = [];
 
     for (const hunkLines of splitByHunk) {
       const hunkHeaderLine = hunkLines.shift();
@@ -154,7 +155,10 @@ function processGitPatch(patch, outputfd) {
       const tokensEqual = _.isEqual(mergedATokens, mergedBTokens);
       if (tokensEqual) {
         numHunksOmitted++;
-        numKeptHunksInFile--;
+        if (omitfd !== null) {
+          omitedHunksStorage.push(hunkHeaderLine);
+          omitedHunksStorage = omitedHunksStorage.concat(hunkLines);
+        }
       } else {
         keptHunksStorage.push(hunkHeaderLine);
         keptHunksStorage = keptHunksStorage.concat(hunkLines);
@@ -163,18 +167,18 @@ function processGitPatch(patch, outputfd) {
       numHunksProcessed++;
     }
 
-    if (!numKeptHunksInFile) {
-      numFilesOmitted++;
-    } else { // ouput kept files
-      var outStr = `${fileNameLine}\n`;
-      outStr += `${metaLine}\n`;
-      outStr += `${fileNameA}\n`;
-      outStr += `${fileNameB}\n`;
-      outStr += `${keptHunksStorage.join('\n')}\n`;
-
-      if (outputfd !== null) fs.writeSync(outputfd, outStr);
-      else process.stdout.write(outStr);
+    if (keptHunksStorage.length) { // ouput kept files
+      const outStr = mergeHunkString(fileNameLine, metaLine, fileNameA, fileNameB, keptHunksStorage);
+      fs.writeSync(outputfd, outStr);
       outputHasContent = true;
+    } else {
+      numFilesOmitted++;
+    }
+
+    if (omitedHunksStorage.length) {
+      const outStr = mergeHunkString(fileNameLine, metaLine, fileNameA, fileNameB, omitedHunksStorage);
+      fs.writeSync(omitfd, outStr);
+      omitedOutputHasContent = true;
     }
 
     numFilesProcessed++;
@@ -194,12 +198,18 @@ function processGitPatch(patch, outputfd) {
   }
 
   if (outputHasContent) {
-    const outStr = '\n';
-    if (outputfd !== null) fs.writeSync(outputfd, outStr);
-    else process.stdout.write(outStr);
+    fs.writeSync(outputfd, '\n');
+  }
+
+  if (omitedOutputHasContent) {
+    fs.writeSync(omitfd, '\n');
   }
 
   // return parsedPatch;
+}
+
+function mergeHunkString(fileNameLine, metaLine, fileNameA, fileNameB, hunksStorage) {
+  return `${fileNameLine}\n${metaLine}\n${fileNameA}\n${fileNameB}\n${hunksStorage.join('\n')}\n`;
 }
 
 function splitIntoParts(lines, separator) {
@@ -229,12 +239,11 @@ fs.readFile(process.argv[2], 'utf8', function(errR, data) {
   if (!errR && process.argv.length > 2) {
     fs.open(process.argv[3], 'w', function(errW, fd) {
       if (!errW) {
-        // fs.writeSync(fd, '\ufeff');
-        processGitPatch(data, fd);
+        processGitPatch(data, fd, null);
         fs.closeSync(fd);
       }
     });
   } else if (!errR) {
-    processGitPatch(data, null);
+    processGitPatch(data, process.stdout.fd, null);
   }
 });
