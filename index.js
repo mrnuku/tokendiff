@@ -28,7 +28,7 @@ function lexerArrayRemoveProps(lexerArray) {
   return lexerArray;
 }
 
-function processGitPatch(patch) {
+function processGitPatch(patch, outputfd) {
   if (typeof patch !== 'string') return null;
 
   var startTime = process.hrtime();
@@ -166,11 +166,14 @@ function processGitPatch(patch) {
     if (!numKeptHunksInFile) {
       numFilesOmitted++;
     } else { // ouput kept files
-      console.log(fileNameLine);
-      console.log(metaLine);
-      console.log(fileNameA);
-      console.log(fileNameB);
-      console.log(keptHunksStorage.join('\n'));
+      var outStr = `${fileNameLine}\n`;
+      outStr += `${metaLine}\n`;
+      outStr += `${fileNameA}\n`;
+      outStr += `${fileNameB}\n`;
+      outStr += `${keptHunksStorage.join('\n')}\n`;
+
+      if (outputfd !== null) fs.writeSync(outputfd, outStr);
+      else process.stdout.write(outStr);
       outputHasContent = true;
     }
 
@@ -191,7 +194,9 @@ function processGitPatch(patch) {
   }
 
   if (outputHasContent) {
-    console.log('');
+    const outStr = '\n';
+    if (outputfd !== null) fs.writeSync(outputfd, outStr);
+    else process.stdout.write(outStr);
   }
 
   // return parsedPatch;
@@ -220,8 +225,16 @@ if (process.argv.length < 3) {
   process.exit(1);
 }
 
-fs.readFile(process.argv[2], 'utf8', function(err, data) {
-  if (!err) {
-    processGitPatch(data);
+fs.readFile(process.argv[2], 'utf8', function(errR, data) {
+  if (!errR && process.argv.length > 2) {
+    fs.open(process.argv[3], 'w', function(errW, fd) {
+      if (!errW) {
+        // fs.writeSync(fd, '\ufeff');
+        processGitPatch(data, fd);
+        fs.closeSync(fd);
+      }
+    });
+  } else if (!errR) {
+    processGitPatch(data, null);
   }
 });
