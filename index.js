@@ -1,7 +1,8 @@
 "use strict";
 
 const fs = require('fs');
-const lexer = require("node-c-lexer");
+// const lexer = require("node-c-lexer");
+const { nuLexer } = require('./Lexer');
 const _ = require('lodash');
 
 // const hashRegex = /^From (\S*)/;
@@ -124,10 +125,19 @@ function processGitPatch(patch, outputfd, omitfd) {
       const match4 = hunkHeaderLine.match(fileLinesRegex);
       if (!match4) return;
 
+      const hunkHeaderLineSplit = hunkHeaderLine.split('@@ ');
+
       // var nA = parseInt(match4[1]);
       // var nB = parseInt(match4[2]);
-      var mergedA = "";
-      var mergedB = "";
+      // var mergedA = "";
+      // var mergedB = "";
+      const mergedALines = [];
+      const mergedBLines = [];
+
+      if (hunkHeaderLineSplit.length == 3) {
+        mergedALines.push(hunkHeaderLineSplit[2]);
+        mergedBLines.push(hunkHeaderLineSplit[2]);
+      }
 
       for (const line of hunkLines) {
         // nA++; nB++;
@@ -137,19 +147,26 @@ function processGitPatch(patch, outputfd, omitfd) {
           // nA--;
           const lineContent = line.substr(1);
           // fileData.lines.push({ added: true, lineNumber: nB, line: lineContent });
-          mergedB += `${lineContent}\n`;
+          // mergedB += `${lineContent}\n`;
+          mergedBLines.push(lineContent);
         } else if (line.startsWith('-')) {
           // nB--;
           const lineContent = line.substr(1);
           // fileData.lines.push({ added: false, lineNumber: nA, line: lineContent });
-          mergedA += `${lineContent}\n`;
-        }/* else {
-          fileData.lines.push({ lineNumber: nA, line });
-        }*/
+          // mergedA += `${lineContent}\n`;
+          mergedALines.push(lineContent);
+        } else {
+          const lineContent = line.substr(1);
+          // fileData.lines.push({ lineNumber: nA, line });
+          mergedALines.push(lineContent);
+          mergedBLines.push(lineContent);
+        }
       }
 
-      const mergedATokens = lexerArrayRemoveProps(lexer.lexUnit.tokenize(mergedA));
-      const mergedBTokens = lexerArrayRemoveProps(lexer.lexUnit.tokenize(mergedB));
+      // const mergedATokens = lexerArrayRemoveProps(lexer.lexUnit.tokenize(mergedA));
+      // const mergedBTokens = lexerArrayRemoveProps(lexer.lexUnit.tokenize(mergedB));
+      const mergedATokens = new nuLexer(mergedALines).Parse();
+      const mergedBTokens = new nuLexer(mergedBLines).Parse();
       numTokensA += mergedATokens.length;
       numTokensB += mergedBTokens.length;
       const tokensEqual = _.isEqual(mergedATokens, mergedBTokens);
