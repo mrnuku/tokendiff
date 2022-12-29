@@ -155,6 +155,8 @@ function processGitPatch(patch, outputfd, omitfd) {
           // fileData.lines.push({ added: false, lineNumber: nA, line: lineContent });
           // mergedA += `${lineContent}\n`;
           mergedALines.push(lineContent);
+        } else if (line.startsWith('\\')) {
+          const lineContent = line.substr(1);
         } else {
           const lineContent = line.substr(1);
           // fileData.lines.push({ lineNumber: nA, line });
@@ -256,7 +258,7 @@ fs.readFile(process.argv[2], 'utf8', function(errR, data) {
   if (!errR && process.argv.length > 2) {
     fs.open(process.argv[3], 'w', function(errW, fd) {
       if (!errW) {
-        processGitPatch(data, fd, null);
+        processGitPatch(data, fd, process.stdout.fd);
         fs.closeSync(fd);
       }
     });
