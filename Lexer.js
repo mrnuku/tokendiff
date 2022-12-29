@@ -12,12 +12,12 @@
   ALLOWNUMBERNAMES:           allow names to start with a number
   ALLOWIPADDRESSES:           allow ip addresses to be parsed as numbers
   ALLOWFLOATEXCEPTIONS:       allow float exceptions like 1.#INF or 1.#IND to be parsed
-  ALLOWMULTICHARLITERALS:     allow multi character literals
+  ALLOWDETECTLONGLITERALS:    allow reporting of multi character literals
   ALLOWBACKSLASHSTRINGCONCAT: allow multiple strings seperated by '\' to be concatenated
   ONLYSTRINGS:                parse as whitespace deliminated strings (quoted strings keep quotes)
   NOUNKNOWN:                  stop emiting UNKNOWN tokens
   POSITIONS:                  add source file position into token
-  ALLOWDETECTNESTEDCOMMENT:   allow reporting nested comments
+  ALLOWDETECTNESTEDCOMMENT:   allow reporting of nested comments
 */
 
 const LFL = {
@@ -32,7 +32,7 @@ const LFL = {
   ALLOWNUMBERNAMES: 'ALLOWNUMBERNAMES',
   ALLOWIPADDRESSES: 'ALLOWIPADDRESSES',
   ALLOWFLOATEXCEPTIONS: 'ALLOWFLOATEXCEPTIONS',
-  ALLOWMULTICHARLITERALS: 'ALLOWMULTICHARLITERALS',
+  ALLOWDETECTLONGLITERALS: 'ALLOWMULTICHARLITERALS',
   ALLOWBACKSLASHSTRINGCONCAT: 'ALLOWBACKSLASHSTRINGCONCAT',
   ONLYSTRINGS: 'ONLYSTRINGS',
   NOUNKNOWN: 'NOUNKNOWN',
@@ -383,7 +383,7 @@ nuLexer.prototype.ReadString = function(token, quote) {
   }
   token.str = str;
   if (token.type == TT.LITERAL) {
-    if (!this.flags.includes(LFL.ALLOWMULTICHARLITERALS)) {
+    if (this.flags.includes(LFL.ALLOWDETECTLONGLITERALS)) {
       if (token.str.length != 1) this._warning("literal is not one character long");
     }
     token.subtype = str[0];
