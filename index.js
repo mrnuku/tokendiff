@@ -1,8 +1,7 @@
 "use strict";
 
 const fs = require('fs');
-// const lexer = require("node-c-lexer");
-const { nuLexer } = require('./Lexer');
+const { nuLexer } = require('lib/Lexer');
 const _ = require('lodash');
 
 // const hashRegex = /^From (\S*)/;
@@ -129,8 +128,6 @@ function processGitPatch(patch, outputfd, omitfd) {
 
       // var nA = parseInt(match4[1]);
       // var nB = parseInt(match4[2]);
-      // var mergedA = "";
-      // var mergedB = "";
       const mergedALines = [];
       const mergedBLines = [];
 
@@ -147,13 +144,11 @@ function processGitPatch(patch, outputfd, omitfd) {
           // nA--;
           const lineContent = line.substr(1);
           // fileData.lines.push({ added: true, lineNumber: nB, line: lineContent });
-          // mergedB += `${lineContent}\n`;
           mergedBLines.push(lineContent);
         } else if (line.startsWith('-')) {
           // nB--;
           const lineContent = line.substr(1);
           // fileData.lines.push({ added: false, lineNumber: nA, line: lineContent });
-          // mergedA += `${lineContent}\n`;
           mergedALines.push(lineContent);
         } else if (line.startsWith('\\')) {
           const lineContent = line.substr(1);
@@ -165,8 +160,6 @@ function processGitPatch(patch, outputfd, omitfd) {
         }
       }
 
-      // const mergedATokens = lexerArrayRemoveProps(lexer.lexUnit.tokenize(mergedA));
-      // const mergedBTokens = lexerArrayRemoveProps(lexer.lexUnit.tokenize(mergedB));
       const mergedATokens = new nuLexer(mergedALines).Parse();
       const mergedBTokens = new nuLexer(mergedBLines).Parse();
       numTokensA += mergedATokens.length;

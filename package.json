@@ -1,15 +1,31 @@
 {
-  "name": "git-hunk-processor",
+  "name": "nulexdiff",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "files": [
+    "index.js",
+    "bin",
+    "lib"
+  ],
+  "keywords": [
+    "diff",
+    "lexer",
+    "c",
+    "c++"
+  ],
+  "directories": {
+    "bin": "./bin"
+  },
+  "bin": {
+    "nulexdiff": "bin/nulexdiff-cli.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "mrnuku",
   "license": "BSD-2-Clause",
   "dependencies": {
-    "lodash": "^4.17.21",
-    "node-c-lexer": "^1.0.5"
+    "lodash": "^4.17.21"
   }
 }
