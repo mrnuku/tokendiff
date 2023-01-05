@@ -13,16 +13,30 @@
   '100644'
 ]*/
 
+// diff --git a/src/Layers/xrAPI/stdafx.h b/src/Layers/xrAPI/stdafx.h
+// index c3afe5b..a2a6319 100644
+
 const fs = require('fs');
 const { readFile } = require('node:fs/promises');
 const readline = require('readline');
+const { PassThrough } = require('node:stream');
 const { nuLexer } = require('../lib/Lexer');
 const _ = require('lodash');
 const { patienceDiff, patienceDiffPlus } = require('../lib/PatienceDiff');
 const { Splitter, Myers, formats, changed } = require('../lib/MyersDiff');
 
-if (process.argv.length < 4) {
-  console.log('Usage: nulexdiff FILENAME_A FILENAME_B');
+if (process.argv.length < 7) {
+  process.stderr.write('Usage: nulexdiff <FILENAME_A> <FILENAME_B> <INDEX> <FILEMOD> <FILENAME>\n');
+  process.exit(1);
+}
+
+if (process.argv[4].length != 40) {
+  process.stderr.write('nulexdiff wrong INDEX parameter\n');
+  process.exit(1);
+}
+
+if (process.argv[5].length != 6) {
+  process.stderr.write('nulexdiff wrong FILEMOD parameter\n');
   process.exit(1);
 }
 
@@ -80,7 +94,8 @@ function printMyersDiff(diffMD, tokensA, tokensB, linesA, linesB, outputStream) 
 function compareTokens(tokensA, tokensB, linesA, linesB, outputStream) {
   return new Promise(async (resolve, reject) => {
     if(_.isEqual(tokensA, tokensB)) {
-      return resolve();
+      process.exit(0);
+      // return resolve();
     }
     const diffMD = Myers.diff(tokensA, tokensB, {compare: 'chars'});
     // const diffPD = await patienceDiff(tokensA, tokensB, accessed => accessed.toString(), (a, b) => a.equals(b));
@@ -88,7 +103,25 @@ function compareTokens(tokensA, tokensB, linesA, linesB, outputStream) {
     // const patchMD = formats.GnuNormalFormat(diffMD);
     // outputStream.write(`diff ${process.argv[2]}: ${tokensA.length}/${tokensB.length}\n`);
 
-    printMyersDiff(diffMD, tokensA, tokensB, linesA, linesB, outputStream);
+    const stream = new PassThrough();
+    const rlC = readline.createInterface({
+      input: stream,
+      terminal: false
+    });
+
+    const linesC = [];
+
+    rlC.on('line', function(line) {
+      linesC.push(line);
+    });
+
+    rlC.on('close', async () => {
+      linesC.push('');
+      resolve([tokensA, tokensB, linesA, linesB, linesC, outputStream]);
+    });
+
+    printMyersDiff(diffMD, tokensA, tokensB, linesA, linesB, stream);
+    stream.end();
 
     // outputStream.write(`${patchMD}\n`);
     // writeObjectToFile(diffMD, "diffMD.json");
@@ -106,6 +139,65 @@ function compareTokens(tokensA, tokensB, linesA, linesB, outputStream) {
     // const diffPDPFile = await readObjectFromFile("diffPDP.json");
     // const diffPDPEq = _.isEqual(JSON.parse(JSON.stringify(diffPDP)), diffPDPFile);
     // outputStream.write(`diffMDEq:${diffMDEq} diffPDEq:${diffPDEq} diffPDPEq:${diffPDPEq}\n`);
+    // return resolve();
+  });
+}
+
+function printLines(prefix, lines, start, length, outputStream) {
+  for (var i = start; i < start + length; i++) {
+    outputStream.write(`${prefix}${lines[i]}\n`);
+  }
+}
+
+function printStage2MyersDiff(diffMD, linesA, linesC, outputStream) {
+  const mergeDistance = 10;
+  const peekDistanceStart = 3;
+  const peekDistanceEnd = 3;
+  const hunks = [];
+  for (var i = 0; i < diffMD.length; i++) {
+    const baseRec = diffMD[i];
+    const hunk = [baseRec];
+    for (var j = i + 1; j < diffMD.length; j++) {
+      const nextRec = diffMD[j];
+      const prevRec = hunk[hunk.length - 1];
+      if (nextRec.lhs.at - (prevRec.lhs.at + prevRec.lhs.length) <= mergeDistance) {
+        hunk.push(nextRec);
+        i++;
+      }
+    }
+    hunks.push(hunk);
+  }
+  for (const hunk of hunks) {
+    const firstLineAt = Math.max(hunk[0].lhs.at - peekDistanceStart, 0);
+    const lastLinesBeginAt = hunk[hunk.length - 1].lhs.at + hunk[hunk.length - 1].lhs.length;
+    const lastLinesNum = Math.min(linesA.length - lastLinesBeginAt, peekDistanceEnd);
+    const numLines = (lastLinesBeginAt + lastLinesNum) - firstLineAt;
+    const newFirstLineAt = Math.max(hunk[0].rhs.at - peekDistanceStart, 0);
+    const deletedLines = hunk.map(e => e.lhs.length).reduce((a, b) => a + b, 0);
+    const newNumLines = hunk.map(e => e.rhs.length).reduce((a, b) => a + b, numLines) - deletedLines;
+    outputStream.write(`@@ -${firstLineAt + 1},${numLines} +${newFirstLineAt + 1},${newNumLines} @@\n`);
+    printLines(' ', linesA, firstLineAt, peekDistanceStart, outputStream);
+    for (var i = 0; i < hunk.length; i++) {
+      const part = hunk[i];
+      printLines('-', linesA, part.lhs.at, part.lhs.length, outputStream);
+      printLines('+', linesC, part.rhs.at, part.rhs.length, outputStream);
+      if (i + 1 < hunk.length) {
+        const nextPart = hunk[i + 1];
+        printLines(' ', linesA, part.lhs.at + part.lhs.length, nextPart.lhs.at - (part.lhs.at + part.lhs.length), outputStream);
+      }
+    }
+    printLines(' ', linesA, lastLinesBeginAt, lastLinesNum, outputStream);
+  }
+}
+
+function comparePatched(tokensA, tokensB, linesA, linesB, linesC, outputStream) {
+  return new Promise(async (resolve, reject) => {
+    const diffMD = Myers.diff(linesA, linesC, {compare: 'chars'});
+    outputStream.write(`diff --git a/${process.argv[6]} b/${process.argv[6]}\n`);
+    outputStream.write(`index ${process.argv[4].substring(0, 7)}..${process.argv[4].slice(-7)} ${process.argv[5]}\n`);
+    outputStream.write(`--- a/${process.argv[6]}\n`);
+    outputStream.write(`+++ b/${process.argv[6]}\n`);
+    printStage2MyersDiff(diffMD, linesA, linesC, outputStream);
     return resolve();
   });
 }
@@ -176,4 +268,5 @@ function openParseInputFiles(outputStream) {
 }
 
 return openParseInputFiles(process.stdout)
-.then(([tokensA, tokensB, linesA, linesB, outputStream]) => compareTokens(tokensA, tokensB, linesA, linesB, outputStream));
+.then(([tokensA, tokensB, linesA, linesB, outputStream]) => compareTokens(tokensA, tokensB, linesA, linesB, outputStream))
+.then(([tokensA, tokensB, linesA, linesB, linesC, outputStream]) => comparePatched(tokensA, tokensB, linesA, linesB, linesC, outputStream));
