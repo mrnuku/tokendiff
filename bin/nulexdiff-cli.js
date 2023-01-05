@@ -248,7 +248,7 @@ function openParseInputFiles(outputStream) {
     rlA.on('close', async () => {
       closedA = true;
       linesA.push('');
-      tokensA = new nuLexer(linesA).Parse();
+      tokensA = new nuLexer(linesA, process.argv[2]).Parse();
       if (closedA && closedB) {
         // process.stderr.write(`${process.argv[2]}: ${tokensA.length}/${tokensB.length}\n`);
         resolve([tokensA, tokensB, linesA, linesB, outputStream]);
@@ -258,7 +258,7 @@ function openParseInputFiles(outputStream) {
     rlB.on('close', async () => {
       closedB = true;
       linesB.push('');
-      tokensB = new nuLexer(linesB).Parse();
+      tokensB = new nuLexer(linesB, process.argv[3]).Parse();
       if (closedA && closedB) {
         // process.stderr.write(`${process.argv[2]}: ${tokensA.length}/${tokensB.length}\n`);
         resolve([tokensA, tokensB, linesA, linesB, outputStream]);
