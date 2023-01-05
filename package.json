@@ -21,6 +21,8 @@
     "nulexdiff": "bin/nulexdiff-cli.js"
   },
   "scripts": {
+    "gcset": "git config --global diff.external nulexdiff",
+    "gcunset": "git config --global --unset diff.external",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "mrnuku",
