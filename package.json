@@ -26,8 +26,5 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "mrnuku",
-  "license": "BSD-2-Clause",
-  "dependencies": {
-    "lodash": "^4.17.21"
-  }
+  "license": "BSD-2-Clause"
 }

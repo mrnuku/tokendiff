@@ -21,7 +21,7 @@ const { readFile } = require('node:fs/promises');
 const readline = require('readline');
 const { PassThrough } = require('node:stream');
 const { nuLexer } = require('../lib/Lexer');
-const _ = require('lodash');
+const isEqual = require('../lib/isEqual');
 const { patienceDiff, patienceDiffPlus } = require('../lib/PatienceDiff');
 const { Splitter, Myers, formats, changed } = require('../lib/MyersDiff');
 
@@ -209,7 +209,7 @@ function parseInputFiles(linesA, linesB, outputStream) {
       return resolve(comparePatched(linesA, linesB, outputStream));
     }
 
-    if(_.isEqual(tokensA, tokensB)) {
+    if(isEqual(tokensA, tokensB)) {
       return resolve();
     }
 

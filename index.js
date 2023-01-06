@@ -1,7 +1,7 @@
 "use strict";
 
 const fs = require('fs');
-const { nuLexer } = require('lib/Lexer');
+const { nuLexer } = require('./lib/Lexer');
 const _ = require('lodash');
 
 // const hashRegex = /^From (\S*)/;
