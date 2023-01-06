@@ -93,10 +93,6 @@ function printMyersDiff(diffMD, tokensA, tokensB, linesA, linesB, outputStream) 
 
 function compareTokens(tokensA, tokensB, linesA, linesB, outputStream) {
   return new Promise(async (resolve, reject) => {
-    if(_.isEqual(tokensA, tokensB)) {
-      process.exit(0);
-      // return resolve();
-    }
     const diffMD = Myers.diff(tokensA, tokensB, {compare: 'chars'});
     // const diffPD = await patienceDiff(tokensA, tokensB, accessed => accessed.toString(), (a, b) => a.equals(b));
     // const diffPDP = await patienceDiffPlus(tokensA, tokensB, accessed => accessed.toString(), (a, b) => a.equals(b));
@@ -190,7 +186,7 @@ function printStage2MyersDiff(diffMD, linesA, linesC, outputStream) {
   }
 }
 
-function comparePatched(tokensA, tokensB, linesA, linesB, linesC, outputStream) {
+function comparePatched(linesA, linesC, outputStream) {
   return new Promise(async (resolve, reject) => {
     const diffMD = Myers.diff(linesA, linesC, {compare: 'chars'});
     outputStream.write(`diff --git a/${process.argv[6]} b/${process.argv[6]}\n`);
@@ -202,7 +198,29 @@ function comparePatched(tokensA, tokensB, linesA, linesB, linesC, outputStream) 
   });
 }
 
-function openParseInputFiles(outputStream) {
+function parseInputFiles(linesA, linesB, outputStream) {
+  return new Promise((resolve, reject) => {
+    const lexerA = new nuLexer(linesA, process.argv[2]);
+    const lexerB = new nuLexer(linesB, process.argv[3]);
+    const tokensA = lexerA.Parse();
+    const tokensB = lexerB.Parse();
+
+    if (lexerA.errors.length || lexerB.errors.length) {
+      return resolve(comparePatched(linesA, linesB, outputStream));
+    }
+
+    if(_.isEqual(tokensA, tokensB)) {
+      process.exit(0);
+      // return resolve();
+    }
+
+    const promise = compareTokens(tokensA, tokensB, linesA, linesB, outputStream)
+    .then(([tokensA, tokensB, linesA, linesB, linesC, outputStream]) => comparePatched(linesA, linesC, outputStream));
+    return resolve(promise);
+  });
+}
+
+function processInputFiles(outputStream) {
   return new Promise((resolve, reject) => {
     const readStreamA = fs.createReadStream(process.argv[2]);
     const readStreamB = fs.createReadStream(process.argv[3]);
@@ -219,13 +237,11 @@ function openParseInputFiles(outputStream) {
 
     const rlA = readline.createInterface({
       input: readStreamA,
-      // output: outputStream,
       terminal: false
     });
 
     const rlB = readline.createInterface({
       input: readStreamB,
-      // output: outputStream,
       terminal: false
     });
 
@@ -242,31 +258,23 @@ function openParseInputFiles(outputStream) {
 
     var closedA = false;
     var closedB = false;
-    var tokensA = [];
-    var tokensB = [];
 
     rlA.on('close', async () => {
       closedA = true;
       linesA.push('');
-      tokensA = new nuLexer(linesA, process.argv[2]).Parse();
       if (closedA && closedB) {
-        // process.stderr.write(`${process.argv[2]}: ${tokensA.length}/${tokensB.length}\n`);
-        resolve([tokensA, tokensB, linesA, linesB, outputStream]);
+        resolve(parseInputFiles(linesA, linesB, outputStream));
       }
     });
 
     rlB.on('close', async () => {
       closedB = true;
       linesB.push('');
-      tokensB = new nuLexer(linesB, process.argv[3]).Parse();
       if (closedA && closedB) {
-        // process.stderr.write(`${process.argv[2]}: ${tokensA.length}/${tokensB.length}\n`);
-        resolve([tokensA, tokensB, linesA, linesB, outputStream]);
+        resolve(parseInputFiles(linesA, linesB, outputStream));
       }
     });
   });
 }
 
-return openParseInputFiles(process.stdout)
-.then(([tokensA, tokensB, linesA, linesB, outputStream]) => compareTokens(tokensA, tokensB, linesA, linesB, outputStream))
-.then(([tokensA, tokensB, linesA, linesB, linesC, outputStream]) => comparePatched(tokensA, tokensB, linesA, linesB, linesC, outputStream));
+return processInputFiles(process.stdout);
