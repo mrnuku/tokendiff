@@ -210,8 +210,7 @@ function parseInputFiles(linesA, linesB, outputStream) {
     }
 
     if(_.isEqual(tokensA, tokensB)) {
-      process.exit(0);
-      // return resolve();
+      return resolve();
     }
 
     const promise = compareTokens(tokensA, tokensB, linesA, linesB, outputStream)
@@ -222,8 +221,11 @@ function parseInputFiles(linesA, linesB, outputStream) {
 
 function processInputFiles(outputStream) {
   return new Promise((resolve, reject) => {
+    const linesA = [];
+    const linesB = [];
     const readStreamA = fs.createReadStream(process.argv[2]);
     const readStreamB = fs.createReadStream(process.argv[3]);
+    const utf8BOM = Buffer.from([208, 191, 194, 187, 209, 151]);
 
     readStreamA.on('error', function(err) {
       process.stderr.write(`ERROR streaming file 'a': ${err}\n`);
@@ -245,14 +247,25 @@ function processInputFiles(outputStream) {
       terminal: false
     });
 
-    const linesA = [];
-    const linesB = [];
-
     rlA.on('line', function(line) {
+      if (!linesA.length) {
+        const lineBuffer = Buffer.from(line);
+        if (lineBuffer.length > 5 && !utf8BOM.compare(lineBuffer.slice(0, 6))) {
+          line = lineBuffer.slice(6).toString();
+          process.stderr.write(`${process.argv[2]}: WARN stripped UTF-8 BOM\n`);
+        }
+      }
       linesA.push(line);
     });
 
     rlB.on('line', function(line) {
+      if (!linesA.length) {
+        const lineBuffer = Buffer.from(line);
+        if (lineBuffer.length > 5 && !utf8BOM.compare(lineBuffer.slice(0, 6))) {
+          line = lineBuffer.slice(6).toString();
+          process.stderr.write(`${process.argv[3]}: WARN stripped UTF-8 BOM\n`);
+        }
+      }
       linesB.push(line);
     });
 
