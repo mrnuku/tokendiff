@@ -26,7 +26,7 @@ const { patienceDiff, patienceDiffPlus } = require('../lib/PatienceDiff');
 const { Splitter, Myers, formats, changed } = require('../lib/MyersDiff');
 
 if (process.argv.length < 7) {
-  process.stderr.write('Usage: tokendiff <FILENAME_A> <FILENAME_B> <INDEX> <FILEMOD> <FILENAME>\n');
+  process.stderr.write('Usage: tokendiff <FILENAME> <FILENAME_A> <INDEX_A> <FILEMOD_A> <FILENAME_B>\n');
   process.exit(1);
 }
 
@@ -39,6 +39,16 @@ if (process.argv[5].length != 6) {
   process.stderr.write('tokendiff wrong FILEMOD parameter\n');
   process.exit(1);
 }
+
+const params = {
+  filename: process.argv[2],
+  filenameA: process.argv[3],
+  indexA: process.argv[4],
+  modA: process.argv[5],
+  filenameB: process.argv[6],
+  // indexB: process.argv[7],
+  // modB: process.argv[8],
+};
 
 /*fs.readFile(process.argv[2], 'utf8', function(err1, data1) {
   if (err1) {
@@ -189,10 +199,10 @@ function printStage2MyersDiff(diffMD, linesA, linesC, outputStream) {
 function comparePatched(linesA, linesC, outputStream) {
   return new Promise(async (resolve, reject) => {
     const diffMD = Myers.diff(linesA, linesC, {compare: 'chars'});
-    outputStream.write(`diff --git a/${process.argv[6]} b/${process.argv[6]}\n`);
-    outputStream.write(`index ${process.argv[4].substring(0, 7)}..${process.argv[4].slice(-7)} ${process.argv[5]}\n`);
-    outputStream.write(`--- a/${process.argv[6]}\n`);
-    outputStream.write(`+++ b/${process.argv[6]}\n`);
+    outputStream.write(`diff --git a/${params.filename} b/${params.filename}\n`);
+    outputStream.write(`index ${params.indexA.substring(0, 7)}..${params.indexA.slice(-7)} ${params.modA}\n`);
+    outputStream.write(`--- a/${params.filename}\n`);
+    outputStream.write(`+++ b/${params.filename}\n`);
     printStage2MyersDiff(diffMD, linesA, linesC, outputStream);
     return resolve();
   });
@@ -200,8 +210,8 @@ function comparePatched(linesA, linesC, outputStream) {
 
 function parseInputFiles(linesA, linesB, outputStream) {
   return new Promise((resolve, reject) => {
-    const lexerA = new nuLexer(linesA, process.argv[2]);
-    const lexerB = new nuLexer(linesB, process.argv[3]);
+    const lexerA = new nuLexer(linesA, params.filenameA);
+    const lexerB = new nuLexer(linesB, params.filenameB);
     const tokensA = lexerA.Parse();
     const tokensB = lexerB.Parse();
 
@@ -223,8 +233,8 @@ function processInputFiles(outputStream) {
   return new Promise((resolve, reject) => {
     const linesA = [];
     const linesB = [];
-    const readStreamA = fs.createReadStream(process.argv[2]);
-    const readStreamB = fs.createReadStream(process.argv[3]);
+    const readStreamA = fs.createReadStream(params.filenameA);
+    const readStreamB = fs.createReadStream(params.filenameB);
     const utf8BOM = Buffer.from([208, 191, 194, 187, 209, 151]);
 
     readStreamA.on('error', function(err) {
@@ -252,7 +262,7 @@ function processInputFiles(outputStream) {
         const lineBuffer = Buffer.from(line);
         if (lineBuffer.length > 5 && !utf8BOM.compare(lineBuffer.slice(0, 6))) {
           line = lineBuffer.slice(6).toString();
-          process.stderr.write(`${process.argv[2]}: WARN stripped UTF-8 BOM\n`);
+          process.stderr.write(`${params.filenameA}: WARN stripped UTF-8 BOM\n`);
         }
       }
       linesA.push(line);
@@ -263,7 +273,7 @@ function processInputFiles(outputStream) {
         const lineBuffer = Buffer.from(line);
         if (lineBuffer.length > 5 && !utf8BOM.compare(lineBuffer.slice(0, 6))) {
           line = lineBuffer.slice(6).toString();
-          process.stderr.write(`${process.argv[3]}: WARN stripped UTF-8 BOM\n`);
+          process.stderr.write(`${params.filenameB}: WARN stripped UTF-8 BOM\n`);
         }
       }
       linesB.push(line);
