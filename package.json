@@ -1,5 +1,5 @@
 {
-  "name": "nulexdiff",
+  "name": "tokendiff",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -11,17 +11,20 @@
   "keywords": [
     "diff",
     "lexer",
-    "c",
-    "c++"
+    "token",
+    "tokenizer",
+    "patch",
+    "git",
+    "minify"
   ],
   "directories": {
     "bin": "./bin"
   },
   "bin": {
-    "nulexdiff": "bin/nulexdiff-cli.js"
+    "tokendiff": "bin/tokendiff.js"
   },
   "scripts": {
-    "gcset": "git config --global diff.external nulexdiff",
+    "gcset": "git config --global diff.external tokendiff",
     "gcunset": "git config --global --unset diff.external",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

@@ -26,17 +26,17 @@ const { patienceDiff, patienceDiffPlus } = require('../lib/PatienceDiff');
 const { Splitter, Myers, formats, changed } = require('../lib/MyersDiff');
 
 if (process.argv.length < 7) {
-  process.stderr.write('Usage: nulexdiff <FILENAME_A> <FILENAME_B> <INDEX> <FILEMOD> <FILENAME>\n');
+  process.stderr.write('Usage: tokendiff <FILENAME_A> <FILENAME_B> <INDEX> <FILEMOD> <FILENAME>\n');
   process.exit(1);
 }
 
 if (process.argv[4].length != 40) {
-  process.stderr.write('nulexdiff wrong INDEX parameter\n');
+  process.stderr.write('tokendiff wrong INDEX parameter\n');
   process.exit(1);
 }
 
 if (process.argv[5].length != 6) {
-  process.stderr.write('nulexdiff wrong FILEMOD parameter\n');
+  process.stderr.write('tokendiff wrong FILEMOD parameter\n');
   process.exit(1);
 }
 
