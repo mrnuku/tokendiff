@@ -269,7 +269,7 @@ function processInputFiles(outputStream) {
     });
 
     rlB.on('line', function(line) {
-      if (!linesA.length) {
+      if (!linesB.length) {
         const lineBuffer = Buffer.from(line);
         if (lineBuffer.length > 5 && !utf8BOM.compare(lineBuffer.slice(0, 6))) {
           line = lineBuffer.slice(6).toString();
