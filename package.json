@@ -21,10 +21,11 @@
     "bin": "./bin"
   },
   "bin": {
-    "tokendiff": "bin/tokendiff.js"
+    "tokendiff": "bin/tokendiff.js",
+    "tokendiffgit": "bin/tokendiffgit.js"
   },
   "scripts": {
-    "gcset": "git config --global diff.external tokendiff",
+    "gcset": "git config --global diff.external tokendiffgit",
     "gcunset": "git config --global --unset diff.external",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

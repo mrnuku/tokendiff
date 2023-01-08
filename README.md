@@ -6,7 +6,7 @@ git compatible external diff utility based on token level comparison for (much) 
 First you need to install as a global node package, then you can set it as the external diff tool for git:
 ```
 npm install -g tokendiff
-git config --global diff.external tokendiff
+git config --global diff.external tokendiffgit
 ```
 
 To produce a patch file, go to your source directory and run:
