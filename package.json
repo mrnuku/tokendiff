@@ -1,6 +1,6 @@
 {
   "name": "tokendiff",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "index.js",
   "files": [
@@ -30,8 +30,8 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
-    "type" : "git",
-    "url" : "https://github.com/mrnuku/tokendiff.git"
+    "type": "git",
+    "url": "https://github.com/mrnuku/tokendiff.git"
   },
   "author": "mrnuku",
   "license": "BSD-2-Clause"
