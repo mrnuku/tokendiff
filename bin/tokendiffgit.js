@@ -3,7 +3,6 @@
 
 const { readFileLines } = require('../lib/File');
 const { nuLexer } = require('../lib/Lexer');
-const isEqual = require('../lib/isEqual');
 const { applyTokenPatch } = require('../lib/Apply');
 const { emitGitUnifiedPatch } = require('../lib/Emit');
 
@@ -43,7 +42,7 @@ function parseInputFiles(linesA, linesB, outputStream) {
       return resolve(emitGitUnifiedPatch(linesA, linesB, outputStream));
     }
 
-    if(isEqual(tokensA, tokensB)) {
+    if(nuLexer.CompareParsed(tokensA, tokensB)) {
       return resolve();
     }
 
