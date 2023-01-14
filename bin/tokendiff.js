@@ -2,6 +2,7 @@
 'use strict';
 
 const { readFileLines } = require('../lib/File');
+const { isEmptyStream } = require('../lib/Stream');
 const { nuLexer } = require('../lib/Lexer');
 const { applyTokenPatch } = require('../lib/Apply');
 const { emitDiffUnifiedPatch } = require('../lib/Emit');
@@ -18,16 +19,22 @@ const params = {
 
 function parseInputFiles(linesA, linesB, outputStream) {
   return new Promise(async (resolve, reject) => {
+    if (isEmptyStream(linesA) || isEmptyStream(linesB)) {
+      if (isEmptyStream(linesA) && isEmptyStream(linesB))
+        return resolve();
+      return resolve(emitDiffUnifiedPatch(linesA, linesB, params, outputStream));
+    }
+
     const lexerA = new nuLexer(linesA, params.filenameA);
     const lexerB = new nuLexer(linesB, params.filenameB);
     const tokensA = lexerA.Parse();
     const tokensB = lexerB.Parse();
 
     if (lexerA.errors.length || lexerB.errors.length) {
-      return resolve(emitDiffUnifiedPatch(linesA, linesB, outputStream));
+      return resolve(emitDiffUnifiedPatch(linesA, linesB, params, outputStream));
     }
 
-    if(nuLexer.CompareParsed(tokensA, tokensB)) {
+    if (nuLexer.CompareParsed(tokensA, tokensB)) {
       return resolve();
     }
 
