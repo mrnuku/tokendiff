@@ -6,6 +6,10 @@ const { isEmptyStream } = require('../lib/Stream');
 const { nuLexer } = require('../lib/Lexer');
 const { applyTokenPatch } = require('../lib/Apply');
 const { emitDiffUnifiedPatch } = require('../lib/Emit');
+const {
+  initConfig,
+  setupTokensComparator,
+} = require('../lib/Config');
 
 if (process.argv.length < 4) {
   process.stderr.write('Usage: tokendiff <FILENAME_A> <FILENAME_B>\n');
@@ -29,6 +33,8 @@ function parseInputFiles(linesA, linesB, outputStream) {
     const lexerB = new nuLexer(linesB, params.filenameB);
     const tokensA = lexerA.Parse();
     const tokensB = lexerB.Parse();
+    setupTokensComparator(tokensA);
+    setupTokensComparator(tokensB);
 
     if (lexerA.errors.length || lexerB.errors.length) {
       return resolve(emitDiffUnifiedPatch(linesA, linesB, params, outputStream));
@@ -46,6 +52,7 @@ function parseInputFiles(linesA, linesB, outputStream) {
 function tokenDiffMain(outputStream) {
   return new Promise(async (resolve, reject) => {
     try {
+      await initConfig();
       const linesA = await readFileLines(params.filenameA);
       const linesB = await readFileLines(params.filenameB);
       return resolve(parseInputFiles(linesA, linesB, outputStream));

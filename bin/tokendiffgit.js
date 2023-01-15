@@ -6,6 +6,10 @@ const { isEmptyStream } = require('../lib/Stream');
 const { nuLexer } = require('../lib/Lexer');
 const { applyTokenPatch } = require('../lib/Apply');
 const { emitGitUnifiedPatch } = require('../lib/Emit');
+const {
+  initConfig,
+  setupTokensComparator,
+} = require('../lib/Config');
 
 if (process.argv.length < 7) {
   process.stderr.write('Usage: tokendiffgit <FILENAME> <FILENAME_A> <INDEX_A> <FILEMOD_A> <FILENAME_B>\n');
@@ -44,6 +48,8 @@ function parseInputFiles(linesA, linesB, outputStream) {
     const lexerB = new nuLexer(linesB, params.filenameB);
     const tokensA = lexerA.Parse();
     const tokensB = lexerB.Parse();
+    setupTokensComparator(tokensA);
+    setupTokensComparator(tokensB);
 
     if (lexerA.errors.length || lexerB.errors.length) {
       return resolve(emitGitUnifiedPatch(linesA, linesB, params, outputStream));
@@ -61,6 +67,7 @@ function parseInputFiles(linesA, linesB, outputStream) {
 function tokenDiffGitMain(outputStream) {
   return new Promise(async (resolve, reject) => {
     try {
+      await initConfig();
       const linesA = await readFileLines(params.filenameA);
       const linesB = await readFileLines(params.filenameB);
       return resolve(parseInputFiles(linesA, linesB, outputStream));
