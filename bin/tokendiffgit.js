@@ -67,7 +67,7 @@ function parseInputFiles(linesA, linesB, outputStream) {
 function tokenDiffGitMain(outputStream) {
   return new Promise(async (resolve, reject) => {
     try {
-      await initConfig();
+      await initConfig(params.filename);
       const linesA = await readFileLines(params.filenameA);
       const linesB = await readFileLines(params.filenameB);
       return resolve(parseInputFiles(linesA, linesB, outputStream));
