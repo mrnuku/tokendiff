@@ -48,8 +48,8 @@ function parseInputFiles(linesA, linesB, outputStream) {
     const lexerB = new nuLexer(linesB, params.filenameB);
     const tokensA = lexerA.Parse();
     const tokensB = lexerB.Parse();
-    setupTokensComparator(tokensA);
-    setupTokensComparator(tokensB);
+    setupTokensComparator(tokensA, 'left');
+    setupTokensComparator(tokensB, 'right');
 
     if (lexerA.errors.length || lexerB.errors.length) {
       return resolve(emitGitUnifiedPatch(linesA, linesB, params, outputStream));
